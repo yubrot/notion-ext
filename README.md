@@ -1,5 +1,7 @@
 # notion-ext
 
+[![](https://github.com/yubrot/notion-ext/actions/workflows/ci.yml/badge.svg)](https://github.com/yubrot/notion-ext/actions/workflows/ci.yml)
+
 A collection of npm packages that enhance the usability of the Notion API (via [`@notionhq/client`](https://github.com/makenotion/notion-sdk-js)).
 
 ## Packages

@@ -1,5 +1,7 @@
 # `@yubrot/notion-flexible-blocks` package
 
+[![npm version](https://badge.fury.io/js/@yubrot%2Fnotion-flexible-blocks.svg)](https://badge.fury.io/js/@yubrot%2Fnotion-flexible-blocks)
+
 A wrapper for the Notion Blocks API that provides a more developer-friendly interface to create Notion blocks.
 
 This is internally used by [`@yubrot/notion-markdown`](https://github.com/yubrot/notion-ext/tree/main/notion-markdown).
