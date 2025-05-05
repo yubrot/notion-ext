@@ -3,7 +3,6 @@
   "packageManager": "pnpm@10.10.0",
   "scripts": {
     "build": "pnpm -r --stream build",
-    "build:docs": "pnpm -r --stream build:docs",
     "test": "pnpm -r --stream test",
     "test:coverage": "pnpm -r --stream test:coverage",
     "lint": "eslint . --ext .ts,.js",
