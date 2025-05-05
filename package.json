@@ -1,0 +1,20 @@
+{
+  "private": true,
+  "packageManager": "pnpm@10.10.0",
+  "scripts": {
+    "build": "pnpm -r --stream build",
+    "build:docs": "pnpm -r --stream build:docs",
+    "test": "pnpm -r --stream test",
+    "test:coverage": "pnpm -r --stream test:coverage",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "format": "prettier --write \"**/*.{js,ts,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,json,md}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.26.0",
+    "eslint": "^9.26.0",
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.31.1"
+  }
+}

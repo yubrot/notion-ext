@@ -1,0 +1,46 @@
+{
+  "name": "@yubrot/notion-flexible-blocks",
+  "version": "0.1.0",
+  "description": "A wrapper for the Notion Blocks API that provides a more developer-friendly interface to create Notion blocks.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:docs": "typedoc --out docs src",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "license": "MIT",
+  "keywords": [
+    "notion"
+  ],
+  "author": "yubrot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yubrot/notion-ext"
+  },
+  "packageManager": "pnpm@10.10.0",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.1.2",
+    "typedoc": "^0.28.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.3.0"
+  }
+}

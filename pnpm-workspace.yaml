@@ -1,0 +1,5 @@
+packages:
+  - 'notion-flexible-blocks'
+  - 'notion-flexible-blocks-example'
+  - 'notion-markdown'
+  - 'notion-markdown-example'
