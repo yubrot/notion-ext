@@ -74,5 +74,5 @@ const blocks = [table(1, [tableRow([inlines])]), ...extraBlocks]
 
 This difference can be seen in the following sample:
 
-1. [toBlocks](https://www.notion.so/yubrot-notion-flexible-blocks-example-1e9b53d5317a800593a3de04458c65e5?pvs=4#1eab53d5317a8166b12dc8c9a6a61a34)
-2. [toInlines with tables](https://www.notion.so/yubrot-notion-flexible-blocks-example-1e9b53d5317a800593a3de04458c65e5?pvs=4#1eab53d5317a817f84d6cf7dfaf8884e)
+1. [toBlocks](https://plum-throne-667.notion.site/yubrot-notion-flexible-blocks-example-1e9b53d5317a800593a3de04458c65e5#1eab53d5317a81f0b0cbcd9d8c3ae1d1)
+2. [toInlines with tables](https://plum-throne-667.notion.site/yubrot-notion-flexible-blocks-example-1e9b53d5317a800593a3de04458c65e5#1eab53d5317a81d0b361e49a0112218a)
