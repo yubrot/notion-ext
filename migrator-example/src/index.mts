@@ -3,6 +3,7 @@ import { PrismaClient } from './prisma/client/index.js'
 import { Client as NotionClient } from '@notionhq/client'
 import { toPageUrl } from '@yubrot/notion-flexible-blocks'
 import type { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints.js'
+import { PageIssuer } from './page-issuer.mts'
 
 const prisma = new PrismaClient()
 
@@ -44,6 +45,17 @@ program
     const result: Record<string, string> = {}
     for (const entry of sourcePageMigrations) result[entry.url] = toPageUrl(entry.notionPageId)
     console.log(JSON.stringify(result, null, 2))
+  })
+
+program
+  .command('notion:issue-page')
+  .argument('<pageOrBlockId>')
+  .argument('<path...>')
+  .action(async (pageOrBlockId, path) => {
+    const client = notionClient()
+    const pageIssuer = new PageIssuer(client, prisma)
+    const pageId = await pageIssuer.issue(pageOrBlockId, path)
+    console.log(toPageUrl(pageId))
   })
 
 program

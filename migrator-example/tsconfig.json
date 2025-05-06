@@ -1,5 +1,8 @@
 {
   "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rewriteRelativeImportExtensions": true
+  },
   "include": ["src/**/*.mts"],
   "exclude": ["node_modules"]
 }
