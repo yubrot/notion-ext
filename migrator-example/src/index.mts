@@ -1,8 +1,8 @@
 import { program } from 'commander'
-import { PrismaClient } from './prisma/client/index.js'
 import { Client as NotionClient } from '@notionhq/client'
-import { toPageUrl } from '@yubrot/notion-flexible-blocks'
 import type { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints.js'
+import { toPageUrl } from '@yubrot/notion-flexible-blocks'
+import { PrismaClient } from './prisma/client/index.js'
 import { PageIssuer } from './page-issuer.mts'
 
 const prisma = new PrismaClient()

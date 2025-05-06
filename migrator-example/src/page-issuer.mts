@@ -38,28 +38,32 @@ export class PageIssuer {
             break
           }
 
-          const newPage = await this.retryable(() =>
-            this.notion.pages.create({
-              parent: { page_id: parentPageId },
-              properties: { type: 'title', title: [{ type: 'text', text: { content: name } }] },
-            }),
-          )
-          newPageId = newPage.id
+          newPageId = await this.#createPage(parentPageId, name)
           await this.prisma.notionPage.create({ data: { pageId: newPageId, name, parentPageId } })
+          pageId = newPageId
+          break
         } catch {
-          if (newPageId) {
-            const conflictedPageId = newPageId
-            newPageId = undefined
-            await this.retryable(() => this.notion.blocks.delete({ block_id: conflictedPageId }))
-          }
+          if (newPageId) await this.#deletePage(newPageId)
           continue
         }
-        pageId = newPageId
-        break
       }
 
       this.cache.set(cacheKey, pageId)
     }
     return pageId
+  }
+
+  async #createPage(parentPageId: string, name: string): Promise<string> {
+    const newPage = await this.retryable(() =>
+      this.notion.pages.create({
+        parent: { page_id: parentPageId },
+        properties: { type: 'title', title: [{ type: 'text', text: { content: name } }] },
+      }),
+    )
+    return newPage.id
+  }
+
+  async #deletePage(pageId: string): Promise<void> {
+    await this.retryable(() => this.notion.blocks.delete({ block_id: pageId }))
   }
 }
