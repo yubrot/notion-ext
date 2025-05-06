@@ -7,5 +7,5 @@ This example demonstrates how to migrate all documents from another knowledge da
 ```
 docker compose up -d
 mise trust
-pnpm run migrator
+pnpm run migrator -h
 ```
