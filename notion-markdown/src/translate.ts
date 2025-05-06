@@ -13,35 +13,24 @@ export interface Context {
 
   /**
    * Notion does not have the concept of relative paths. This option allows you to map to a URL.
+   * You can also map a link URL to a specific Notion page.
    */
-  mapLink: (path: string) => Promise<string | null>
-  /**
-   * This option allows you to map a link URL to a specific Notion page.
-   */
-  mapLinkToMention: (url: string) => Promise<string | null>
-  /**
-   * Called when `mapLink` or URL validation fails.
-   */
-  onInvalidLink: (fbs: fb.FlexibleBlock[], url: string) => Promise<fb.FlexibleBlock[]>
+  mapLink: (path: string) => Promise<string | { mention: string } | null>
 
   /**
    * Image version of `mapLink`.
+   * You can also map an image URL to an embedded content.
    */
-  mapImage: (path: string) => Promise<string | null>
-  /**
-   * This option allows you to map an image URL to an embedding content.
-   * Since Notion cannot directly embed images that require authentication, we may want to replace it with an embed.
-   */
-  mapImageToEmbed: (url: string) => Promise<string | null>
-  /**
-   * Called when `mapImage` or URL validation fails.
-   */
-  onInvalidImage: (url: string) => Promise<fb.FlexibleBlock[]>
+  mapImage: (path: string) => Promise<string | { embed: string } | null>
+
   /**
    * If true, the image will be tested for accessibility.
    */
   testImageFetchable: boolean
 
+  onInvalidLink: (fbs: fb.FlexibleBlock[], url: string) => Promise<fb.FlexibleBlock[]>
+  onInvalidMention: (fbs: fb.FlexibleBlock[], mention: string) => Promise<fb.FlexibleBlock[]>
+  onInvalidImage: (url: string) => Promise<fb.FlexibleBlock[]>
   onInvalidEmbed: (url: string) => Promise<fb.FlexibleBlock[]>
 
   // You can override the behavior for unsupported nodes
@@ -55,15 +44,11 @@ export interface Context {
 export const defaultContext: Context = {
   mdProcessor: unified().use(remarkParse).use(remarkGfm),
   mapLink: async url => url,
-  mapLinkToMention: async url => {
-    if (url.match(/^[a-z0-9]{32}$/)) return url
-    return null
-  },
-  onInvalidLink: async fbs => fbs,
   mapImage: async url => url,
-  mapImageToEmbed: async () => null,
-  onInvalidImage: async url => fb.text(`Invalid image: ${url}`),
   testImageFetchable: false,
+  onInvalidLink: async fbs => fbs,
+  onInvalidMention: async fbs => fbs,
+  onInvalidImage: async url => fb.text(`Invalid image: ${url}`),
   onInvalidEmbed: async () => [],
   onUnsupportedYamlNode: async () => [],
   onUnsupportedDefinitionNode: async () => [],
@@ -275,25 +260,31 @@ class Translator {
     url: string,
     ann?: fb.Inline['data']['annotations'],
   ): Promise<fb.FlexibleBlock[]> {
-    const urlBeforeMap = url
-    url = (await this.ctx.mapLink(url)) || ''
-    if (!url) return await this.ctx.onInvalidLink(fbs, urlBeforeMap)
+    const mappedUrl = await this.ctx.mapLink(url)
+    if (isMention(mappedUrl)) return await this.mention(fbs, mappedUrl.mention, ann)
 
-    const pageId = await this.ctx.mapLinkToMention(url)
-    if (pageId) return [fb.mention(pageId, ann)]
+    const embeddableUrl = mappedUrl && fb.toEmbeddableUrl(mappedUrl)
+    if (!embeddableUrl) return await this.ctx.onInvalidLink(fbs, mappedUrl || url)
 
-    url = fb.toEmbeddableUrl(url) || ''
-    if (!url) return await this.ctx.onInvalidLink(fbs, urlBeforeMap)
-    return fbs.map(b => fb.mapLink(b, () => url))
+    return fbs.map(b => fb.mapLink(b, () => embeddableUrl))
+  }
+
+  async mention(
+    fbs: fb.FlexibleBlock[],
+    mention: string,
+    ann?: fb.Inline['data']['annotations'],
+  ): Promise<fb.FlexibleBlock[]> {
+    if (!mention) return await this.ctx.onInvalidMention(fbs, mention)
+
+    return [fb.mention(mention, ann)]
   }
 
   async image(url: string, options?: { title?: string; width?: number; height?: number }): Promise<fb.FlexibleBlock[]> {
-    const urlBeforeMap = url
-    url = (await this.ctx.mapImage(url)) || ''
-    if (!url) return await this.ctx.onInvalidImage(urlBeforeMap)
+    const mappedUrl = await this.ctx.mapImage(url)
+    if (isEmbed(mappedUrl)) return await this.embed(mappedUrl.embed, options)
 
-    const embedUrl = await this.ctx.mapImageToEmbed(url)
-    if (embedUrl) return await this.embed(embedUrl, options)
+    if (!mappedUrl) return await this.ctx.onInvalidImage(url)
+    url = mappedUrl
 
     if (this.ctx.testImageFetchable) {
       try {
@@ -364,3 +355,11 @@ const GITHUB_ALERT_PREFIX: [string, Partial<(fb.Block['data'] & { type: 'callout
   ['[!WARNING]\n', { color: 'brown_background' }],
   ['[!CAUTION]\n', { color: 'red_background' }],
 ]
+
+function isMention(mappedLink: string | { mention: string } | null): mappedLink is { mention: string } {
+  return !!mappedLink && typeof mappedLink == 'object'
+}
+
+function isEmbed(mappedImage: string | { embed: string } | null): mappedImage is { embed: string } {
+  return !!mappedImage && typeof mappedImage == 'object'
+}

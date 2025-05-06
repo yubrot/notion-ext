@@ -9,25 +9,26 @@ describe('translate', () => {
     return co
   }
 
-  const mapWithBaseUrl = (baseUrl: string) => async (url: string) => {
-    if (url == 'invalid') return null
-    try {
-      return new URL(url, baseUrl).href
-    } catch {
-      return null
-    }
-  }
-
   const context: Partial<Context> = {
-    mapLink: mapWithBaseUrl('https://example.com/'),
-    mapLinkToMention: async url => {
-      if (url == 'https://example.com/mention') return 'f2811268781747febb9689fe95dbe93d'
-      return null
+    mapLink: async url => {
+      if (url == 'invalid') return null
+      try {
+        url = new URL(url, 'https://example.com/').href
+      } catch {
+        return null
+      }
+      if (url == 'https://example.com/mention') return { mention: 'f2811268781747febb9689fe95dbe93d' }
+      return url
     },
-    mapImage: mapWithBaseUrl('https://example.com/'),
-    mapImageToEmbed: async url => {
-      if (url == 'https://example.com/embed.png') return 'https://example.com/embed'
-      return null
+    mapImage: async url => {
+      if (url == 'invalid') return null
+      try {
+        url = new URL(url, 'https://example.com/').href
+      } catch {
+        return null
+      }
+      if (url == 'https://example.com/embed.png') return { embed: 'https://example.com/embed' }
+      return url
     },
   }
 
