@@ -1,6 +1,6 @@
 import { program } from 'commander'
 import { Client } from '@notionhq/client'
-import { create } from '@yubrot/notion-markdown'
+import { create, type Context } from '@yubrot/notion-markdown'
 import { toPageUrl } from '@yubrot/notion-flexible-blocks/util'
 
 await program
@@ -20,7 +20,7 @@ async function main(blockId: string, options: { notionApiKey?: string }) {
 
   try {
     const client = new Client({ auth: notionApiKey })
-    await create(client, blockId, document())
+    await create(client, blockId, document(), context())
     console.log(toPageUrl(blockId))
   } catch (error) {
     console.error('Failed to create blocks:', error)
@@ -147,7 +147,7 @@ Images in table cells are replaced by the reference strings:
 
 - Plain URL: https://www.google.com
 - Link to Google: [Link to Google](https://www.google.com)
-- Link to Notion page: [Link to Notion page](1e9b53d5317a800593a3de04458c65e5)
+- Link to Notion page: [Link to Notion page](notion/1e9b53d5317a800593a3de04458c65e5)
 
 # Footnotes
 
@@ -156,4 +156,14 @@ Since Notion does not support footnotes [^1], we will replace them with content 
 [^1]: This is a footnote.
 [^2]: This is another footnote.
   `
+}
+
+function context(): Partial<Context> {
+  return {
+    mapLink: async url => {
+      const m = url.match(/^notion\/([0-9a-f]{32})$/)
+      if (m) return { mention: m[1] }
+      return url
+    },
+  }
 }
