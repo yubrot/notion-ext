@@ -1,0 +1,3 @@
+[env]
+# The demo uses a local DB, but it would be better to set up an instance in the cloud.
+DATABASE_URL = "postgresql://postgres:password@localhost:28432/postgres"
