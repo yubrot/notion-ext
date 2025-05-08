@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model NotionPage {
+  pageId       String   @id
+  parentPageId String
+  name         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // There is only one page with the same name on a given parent page:
+  @@unique([parentPageId, name])
+}
+
+model SourcePageMigration {
+  url          String    @id
+  notionPageId String    @unique
+  importedAt   DateTime?
+  freezedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model SourcePageMigrationError {
+  id        Int      @id @default(autoincrement())
+  url       String
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([url])
+}

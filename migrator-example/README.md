@@ -4,4 +4,10 @@ This example demonstrates how to migrate all documents from another knowledge da
 
 ## Try it
 
+```
+mise trust
+docker compose up -d
+npx prisma migrate dev
+```
+
 TODO
