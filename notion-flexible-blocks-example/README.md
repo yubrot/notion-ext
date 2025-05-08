@@ -1,6 +1,6 @@
 # Example of [`@yubrot/notion-flexible-blocks`](https://github.com/yubrot/notion-ext/tree/main/notion-flexible-blocks)
 
-The result of this example can be seen in [published site](https://plum-throne-667.notion.site/yubrot-notion-flexible-blocks-example-1e9b53d5317a800593a3de04458c65e5).
+The result of this example can be seen on [the published site](https://plum-throne-667.notion.site/yubrot-notion-flexible-blocks-example-1e9b53d5317a800593a3de04458c65e5).
 
 ## Try it
 

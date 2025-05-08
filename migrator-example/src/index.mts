@@ -27,7 +27,7 @@ function migrator() {
       'https://github.com/yubrot/notion-ext/tree/main/migrator-example/example-docs',
       './example-docs',
     ),
-    '1ebb53d5-317a-80e7-b7de-c33e452169fc',
+    '1edb53d5-317a-80cb-96f9-f5eb72cb0a59',
   )
   return mg
 }
