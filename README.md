@@ -13,3 +13,4 @@ A collection of npm packages that enhance the usability of the Notion API (via [
 
 - [notion-flexible-blocks-example](./notion-flexible-blocks-example) - an example of using `@yubrot/notion-flexible-blocks` to create blocks.
 - [notion-markdown-example](./notion-markdown-example) - an example of using `@yubrot/notion-markdown` to create blocks from Markdown documents.
+- [migrator-example](./migrator-example) - demonstrates how to migrate all documents from another knowledge database to Notion.

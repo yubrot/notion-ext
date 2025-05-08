@@ -3,6 +3,6 @@
   "compilerOptions": {
     "rewriteRelativeImportExtensions": true
   },
-  "include": ["index.mts"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }

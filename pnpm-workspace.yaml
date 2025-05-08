@@ -1,5 +1,10 @@
 packages:
-  - 'notion-flexible-blocks'
-  - 'notion-flexible-blocks-example'
-  - 'notion-markdown'
-  - 'notion-markdown-example'
+  - notion-flexible-blocks
+  - notion-flexible-blocks-example
+  - notion-markdown
+  - notion-markdown-example
+  - migrator-example
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma

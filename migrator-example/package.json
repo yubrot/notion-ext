@@ -1,0 +1,24 @@
+{
+  "name": "migrator-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "migrator": "node --disable-warning=ExperimentalWarning src/index.mts",
+    "postinstall": "prisma generate"
+  },
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "@notionhq/client": "^2.3.0",
+    "@prisma/client": "^6.7.0",
+    "@yubrot/notion-flexible-blocks": "workspace:*",
+    "@yubrot/notion-markdown": "workspace:*",
+    "commander": "^13.1.0",
+    "lru-cache": "^11.1.0",
+    "p-queue": "^8.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "prisma": "^6.7.0",
+    "typescript": "^5.8.3"
+  }
+}
