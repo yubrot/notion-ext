@@ -59,22 +59,25 @@ type BlockDetail<K extends string, T = BlockData> = T extends { type?: K } & Rec
 export function embed<T = Block[]>(embed: BlockDetail<'embed'>, onError?: () => T): Block[] | T {
   const url = toEmbeddableUrl(embed.url)
   if (!url) return onError?.() || []
-  return [block({ object: 'block', type: 'embed', embed: { ...embed, url } })] as T
+  return [block({ object: 'block', type: 'embed', embed: { ...embed, url } })]
 }
 
 export function bookmark<T = Block[]>(bookmark: BlockDetail<'bookmark'>, onError?: () => T): Block[] | T {
   const url = toEmbeddableUrl(bookmark.url)
   if (!url) return onError?.() || []
-  return [block({ object: 'block', type: 'bookmark', bookmark: { ...bookmark, url } })] as T
+  return [block({ object: 'block', type: 'bookmark', bookmark: { ...bookmark, url } })]
 }
 
 const supportedImageExtensions = '.heic,.ico,.jpeg,.jpg,.png,.tif,.tiff,.gif,.svg,.webp'.split(',')
 
 export function image<T = Block[]>(image: BlockDetail<'image'>, onError?: () => T): Block[] | T {
-  const url = toEmbeddableUrl(image.external.url)
-  if (!url) return onError?.() || []
-  if (!supportedImageExtensions.some(ext => url.endsWith(ext))) return onError?.() || []
-  return [block({ object: 'block', type: 'image', image: { ...image, external: { ...image.external, url } } })] as T
+  if (image.type == 'external') {
+    const url = toEmbeddableUrl(image.external.url)
+    if (!url) return onError?.() || []
+    if (!supportedImageExtensions.some(ext => url.endsWith(ext))) return onError?.() || []
+    image = { ...image, external: { ...image.external, url } }
+  }
+  return [block({ object: 'block', type: 'image', image })]
 }
 
 // TODO: type: 'video'
