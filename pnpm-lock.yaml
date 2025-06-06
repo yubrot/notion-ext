@@ -98,6 +98,9 @@ importers:
       '@types/mdast':
         specifier: ^4.0.4
         version: 4.0.4
+      '@yubrot/notion-flexible-blocks':
+        specifier: workspace:*
+        version: link:../notion-flexible-blocks
       node-html-parser:
         specifier: ^7.0.1
         version: 7.0.1
@@ -114,9 +117,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^3.1.2
         version: 3.2.1(vitest@3.2.1(@types/debug@4.1.12)(@types/node@22.15.29)(jiti@2.4.2)(yaml@2.7.1))
-      '@yubrot/notion-flexible-blocks':
-        specifier: workspace:*
-        version: link:../notion-flexible-blocks
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
