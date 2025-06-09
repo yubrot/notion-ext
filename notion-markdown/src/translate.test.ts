@@ -11,7 +11,7 @@ describe('translate', () => {
 
   const context: Partial<Context> = {
     mapLink: async url => {
-      if (url == 'invalid') return null
+      if (url == 'INVALID_EXAMPLE') return null
       try {
         url = new URL(url, 'https://example.com/').href
       } catch {
@@ -21,13 +21,13 @@ describe('translate', () => {
       return url
     },
     mapImage: async url => {
-      if (url == 'invalid') return null
+      if (url == 'INVALID_EXAMPLE') return null
       try {
         url = new URL(url, 'https://example.com/').href
       } catch {
         return null
       }
-      if (url == 'https://example.com/embed.png') return { embed: 'https://example.com/embed' }
+      if (url == 'https://example.com/EMBED_EXAMPLE') return { embed: 'https://example.com/embed' }
       return url
     },
   }
@@ -156,7 +156,7 @@ foo [^1] bar [^2] baz
       input: `
 [link1 *emphasis*](https://example.com/hello)
 [link2](foo/bar)
-[invalid link](invalid)
+[invalid link](INVALID_EXAMPLE)
 **[mention](/mention)**
 `,
       output: fb.toBlocks([
@@ -171,17 +171,20 @@ foo [^1] bar [^2] baz
       ]),
     },
     {
-      title: 'image',
+      title: 'media',
       input: `
 ![](https://example.com/image.png)
-![](unsupported-filetype.bmp)
+![](INVALID_EXAMPLE)
+![](unsupported-filetype.ext)
 ![](./foo.png)
-![](./embed.png)
+![](./EMBED_EXAMPLE)
       `,
       output: fb.toBlocks([
         ...fb.image({ external: { url: 'https://example.com/image.png' } }),
         ...fb.newline,
-        ...fb.text('Invalid image: https://example.com/unsupported-filetype.bmp'),
+        ...fb.text('Invalid image: INVALID_EXAMPLE'),
+        ...fb.newline,
+        ...fb.text('Invalid image: https://example.com/unsupported-filetype.ext'),
         ...fb.newline,
         ...fb.image({ external: { url: 'https://example.com/foo.png' } }),
         ...fb.newline,

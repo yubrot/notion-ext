@@ -68,22 +68,86 @@ export function bookmark<T = Block[]>(bookmark: BlockDetail<'bookmark'>, onError
   return [block({ object: 'block', type: 'bookmark', bookmark: { ...bookmark, url } })]
 }
 
-const supportedImageExtensions = '.heic,.ico,.jpeg,.jpg,.png,.tif,.tiff,.gif,.svg,.webp'.split(',')
+export const supportedExtensions = (() => {
+  const audio = '.aac .adts .mid .midi .mp3 .mpga .m4a .m4b .mp4 .oga .ogg .wav .wma'.split(' ')
+  const pdf = '.pdf'.split(' ')
+  const image = '.gif .heic .jpeg .jpg .png .svg .tif .tiff .webp .ico'.split(' ')
+  const video = '.amv .asf .wmv .avi .f4v .flv .gifv .m4v .mp4 .mkv .webm .mov .qt .mpeg'.split(' ')
+  const doc = '.txt .json .doc .dot .docx .dotx .xls .xlt .xla .xlsx .xltx .ppt .pot .pps .ppa .pptx .potx'.split(' ')
+  const file = [...audio, ...pdf, ...image, ...video, ...doc]
+  return { audio, pdf, image, video, file }
+})()
 
-export function image<T = Block[]>(image: BlockDetail<'image'>, onError?: () => T): Block[] | T {
-  if (image.type == 'external') {
-    const url = toEmbeddableUrl(image.external.url)
-    if (!url) return onError?.() || []
-    if (!supportedImageExtensions.some(ext => url.endsWith(ext))) return onError?.() || []
-    image = { ...image, external: { ...image.external, url } }
+export type MediaType = 'audio' | 'pdf' | 'image' | 'video' | 'file'
+
+export type MediaContent = (NBlock2 & { type: 'image' })['image']
+
+export function media<T = Block[]>(type: MediaType, media: MediaContent, onError?: () => T): Block[] | T {
+  switch (type) {
+    case 'audio':
+      return audio(media, onError)
+    case 'pdf':
+      return pdf(media, onError)
+    case 'image':
+      return image(media, onError)
+    case 'video':
+      return video(media, onError)
+    default:
+      return file(media, onError)
   }
-  return [block({ object: 'block', type: 'image', image })]
 }
 
-// TODO: type: 'video'
-// TODO: type: 'pdf'
-// TODO: type: 'file'
-// TODO: type: 'audio'
+function normalizeMediaContent(content: MediaContent, extensions: string[]): MediaContent {
+  if (!content.type && 'external' in content) content = { type: 'external', ...content }
+  if (content.type == 'external') {
+    const url = toEmbeddableUrl(content.external.url)
+    if (!url) throw 'Cannot convert URL to embeddable'
+    if (!extensions.some(ext => url.endsWith(ext))) throw 'Unsupported file extension'
+
+    return { ...content, external: { ...content.external, url } }
+  }
+  return content
+}
+
+export function image<T = Block[]>(image: BlockDetail<'image'>, onError?: () => T): Block[] | T {
+  try {
+    return [block({ object: 'block', type: 'image', image: normalizeMediaContent(image, supportedExtensions.image) })]
+  } catch {
+    return onError?.() || []
+  }
+}
+
+export function video<T = Block[]>(video: BlockDetail<'video'>, onError?: () => T): Block[] | T {
+  try {
+    return [block({ object: 'block', type: 'video', video: normalizeMediaContent(video, supportedExtensions.video) })]
+  } catch {
+    return onError?.() || []
+  }
+}
+
+export function pdf<T = Block[]>(pdf: BlockDetail<'pdf'>, onError?: () => T): Block[] | T {
+  try {
+    return [block({ object: 'block', type: 'pdf', pdf: normalizeMediaContent(pdf, supportedExtensions.pdf) })]
+  } catch {
+    return onError?.() || []
+  }
+}
+
+export function audio<T = Block[]>(audio: BlockDetail<'audio'>, onError?: () => T): Block[] | T {
+  try {
+    return [block({ object: 'block', type: 'audio', audio: normalizeMediaContent(audio, supportedExtensions.audio) })]
+  } catch {
+    return onError?.() || []
+  }
+}
+
+export function file<T = Block[]>(file: BlockDetail<'file'>, onError?: () => T): Block[] | T {
+  try {
+    return [block({ object: 'block', type: 'file', file: normalizeMediaContent(file, supportedExtensions.file) })]
+  } catch {
+    return onError?.() || []
+  }
+}
 
 export function code(code: string, lang?: string | null): Block {
   return block({
