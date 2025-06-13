@@ -27,7 +27,12 @@ describe('translate', () => {
       } catch {
         return null
       }
-      if (url == 'https://example.com/EMBED_EXAMPLE') return { embed: 'https://example.com/embed' }
+      if (url == 'https://example.com/EMBED_EXAMPLE') {
+        return { embed: 'https://example.com/embed' }
+      }
+      if (url == 'https://example.com/AUDIO_EXAMPLE') {
+        return { type: 'audio', file: '604184d7-f31b-4961-99ca-67fff9764bb0' }
+      }
       return url
     },
   }
@@ -177,7 +182,8 @@ foo [^1] bar [^2] baz
 ![](INVALID_EXAMPLE)
 ![](unsupported-filetype.ext)
 ![](./foo.png)
-![](./EMBED_EXAMPLE)
+![](EMBED_EXAMPLE)
+![](AUDIO_EXAMPLE)
       `,
       output: fb.toBlocks([
         ...fb.image({ external: { url: 'https://example.com/image.png' } }),
@@ -189,6 +195,8 @@ foo [^1] bar [^2] baz
         ...fb.image({ external: { url: 'https://example.com/foo.png' } }),
         ...fb.newline,
         ...fb.embed({ url: 'https://example.com/embed' }),
+        ...fb.newline,
+        ...fb.audio({ type: 'file_upload', file_upload: { id: '604184d7-f31b-4961-99ca-67fff9764bb0' } }),
       ]),
     },
     // TODO: testImageFetchable

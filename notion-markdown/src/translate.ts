@@ -12,16 +12,17 @@ export interface Context {
   mdProcessor: Processor<md.Root, undefined, md.Root | undefined>
 
   /**
-   * Notion does not have the concept of relative paths. This option allows you to map to a URL.
-   * You can also map a link URL to a specific Notion page.
+   * This callback is invoked when the translator finds a link; although Notion does not support the
+   * concept of relative paths or other such concepts, you can map the path of a link to any URL or
+   * mention to any page in Notion through this callback.
    */
-  mapLink: (path: string) => Promise<string | { mention: string } | null>
+  mapLink: (path: string) => Promise<MappedLink | null>
 
   /**
    * Image version of `mapLink`.
-   * You can also map an image URL to an embedded content.
+   * You can also map an image URL to any media content.
    */
-  mapImage: (path: string) => Promise<string | { embed: string } | null>
+  mapImage: (path: string) => Promise<MappedImage | null>
 
   /**
    * If true, the image will be tested for accessibility.
@@ -40,6 +41,14 @@ export interface Context {
   onUnsupportedLinkReferenceNode: (node: md.LinkReference) => Promise<fb.FlexibleBlock[]>
   onUnsupportedHtmlNode: (node: HtmlNode, ann: fb.Inline['data']['annotations']) => Promise<fb.FlexibleBlock[]>
 }
+
+export type MappedLink = string | { mention: string }
+
+export type MappedImage =
+  | string // Shorthand for { type: 'image'; url: string }
+  | { type?: 'embed'; embed: string }
+  | { type: fb.MediaType; url: string; file?: undefined }
+  | { type: fb.MediaType; url?: undefined; file: string }
 
 export const defaultContext: Context = {
   mdProcessor: unified().use(remarkParse).use(remarkGfm),
@@ -260,11 +269,11 @@ class Translator {
     url: string,
     ann?: fb.Inline['data']['annotations'],
   ): Promise<fb.FlexibleBlock[]> {
-    const mappedUrl = await this.ctx.mapLink(url)
-    if (isMention(mappedUrl)) return await this.mention(fbs, mappedUrl.mention, ann)
+    const mappedLink = await this.ctx.mapLink(url)
+    if (isObject(mappedLink)) return await this.mention(fbs, mappedLink.mention, ann)
 
-    const embeddableUrl = mappedUrl && fb.toEmbeddableUrl(mappedUrl)
-    if (!embeddableUrl) return await this.ctx.onInvalidLink(fbs, mappedUrl || url)
+    const embeddableUrl = mappedLink && fb.toEmbeddableUrl(mappedLink)
+    if (!embeddableUrl) return await this.ctx.onInvalidLink(fbs, mappedLink || url)
 
     return fbs.map(b => fb.mapLink(b, () => embeddableUrl))
   }
@@ -280,11 +289,22 @@ class Translator {
   }
 
   async image(url: string, options?: { title?: string; width?: number; height?: number }): Promise<fb.FlexibleBlock[]> {
-    const mappedUrl = await this.ctx.mapImage(url)
-    if (isEmbed(mappedUrl)) return await this.embed(mappedUrl.embed, options)
+    const mappedImage = await this.ctx.mapImage(url)
+    if (isObject(mappedImage)) {
+      switch (mappedImage.type) {
+        case undefined:
+        case 'embed':
+          return await this.embed(mappedImage.embed, options)
+      }
+      const media =
+        typeof mappedImage.url == 'string'
+          ? { type: 'external' as const, external: { url: mappedImage.url } }
+          : { type: 'file_upload' as const, file_upload: { id: mappedImage.file } }
+      return await fb.media(mappedImage.type, media, () => this.ctx.onInvalidImage(url))
+    }
 
-    if (!mappedUrl) return await this.ctx.onInvalidImage(url)
-    url = mappedUrl
+    if (!mappedImage) return await this.ctx.onInvalidImage(url)
+    url = mappedImage
 
     if (this.ctx.testImageFetchable) {
       try {
@@ -296,10 +316,11 @@ class Translator {
     }
 
     const image = {
+      type: 'external',
       external: { url },
       // NOTE: Since current Notion API cannot specify width and height, we only use options.title
       caption: options?.title?.length ? fb.text(options.title).map(c => c.data) : undefined,
-    }
+    } as const
     return await fb.image(image, () => this.ctx.onInvalidImage(url))
   }
 
@@ -356,10 +377,6 @@ const GITHUB_ALERT_PREFIX: [string, Partial<(fb.Block['data'] & { type: 'callout
   ['[!CAUTION]\n', { color: 'red_background' }],
 ]
 
-function isMention(mappedLink: string | { mention: string } | null): mappedLink is { mention: string } {
-  return !!mappedLink && typeof mappedLink == 'object'
-}
-
-function isEmbed(mappedImage: string | { embed: string } | null): mappedImage is { embed: string } {
-  return !!mappedImage && typeof mappedImage == 'object'
+function isObject<T>(value: T | null): value is T & object {
+  return !!value && typeof value == 'object'
 }
