@@ -9,6 +9,7 @@ This is a TypeScript monorepo containing npm packages that enhance the Notion AP
 ## Development Commands
 
 ### Essential Commands
+
 - `pnpm install` - Install all workspace dependencies
 - `pnpm build` - Build all packages
 - `pnpm test` - Run all tests across packages
@@ -18,12 +19,15 @@ This is a TypeScript monorepo containing npm packages that enhance the Notion AP
 - `pnpm format` - Format code with Prettier
 
 ### Package-Specific Commands
+
 Each package supports `build`, `test`, and `test:coverage` individually.
 
 ## Architecture
 
 ### Core Packages
+
 - **notion-flexible-blocks**: Core library providing block abstraction over Notion API
+
   - `src/flexible-block.ts` - Main abstraction layer
   - `src/execute.ts` - API execution with batching and retry logic
   - `src/plan.ts` - Execution planning
@@ -34,6 +38,7 @@ Each package supports `build`, `test`, and `test:coverage` individually.
   - `src/translate.ts` - Core conversion logic using unified/remark
 
 ### Key Architectural Patterns
+
 - All packages are pure ESM with TypeScript
 - Uses composite TypeScript builds for incremental compilation
 - Flexible blocks can contain both blocks and inline content
@@ -41,11 +46,13 @@ Each package supports `build`, `test`, and `test:coverage` individually.
 - Workspace dependencies use `workspace:*` protocol
 
 ### Testing
+
 - Uses Vitest for testing framework
 - Coverage reports with `@vitest/coverage-v8`
 - Tests are located alongside source files
 
 ### Code Quality
+
 - ESLint with TypeScript support using flat config
 - Prettier for formatting
 - Strict TypeScript configuration with ES2022 target

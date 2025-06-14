@@ -7,6 +7,7 @@ import { defaultRetryable, type Retryable } from './util.js'
 export {
   type Block,
   type TableRowBlock,
+  type ColumnBlock,
   type MediaType,
   type MediaContent,
   embed,

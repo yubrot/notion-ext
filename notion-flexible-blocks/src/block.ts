@@ -31,6 +31,7 @@ type OmitChildren<T, K extends string> = T extends { type?: K } & Record<K, unkn
   : never
 
 export type TableRowBlock = Block & { data: { type: 'table_row' } }
+export type ColumnBlock = Block & { data: { type: 'column' } }
 
 /**
  * The depth at which this Block is allowed to exist.
@@ -243,6 +244,14 @@ export function toggle(contents: Inline[], children?: Block[]): Block {
 
 export function callout(contents: Inline[], children?: Block[]): Block {
   return block({ object: 'block', type: 'callout', callout: { rich_text: contents.map(i => i.data) } }, children)
+}
+
+export function columnList(columns: ColumnBlock[]): Block {
+  return block({ object: 'block', type: 'column_list', column_list: {} }, columns)
+}
+
+export function column(children?: Block[]): ColumnBlock {
+  return block({ object: 'block', type: 'column', column: {} }, children)
 }
 
 // TODO: type: 'synced_block'

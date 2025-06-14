@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { embed, heading1, heading2, paragraph } from './block.js'
-import { removeHeadingParagraph, toBlocks, toInlines } from './flexible-block.js'
+import { embed, heading1, heading2, paragraph, image } from './block.js'
+import { removeHeadingParagraph, toBlocks, toInlines, mapCaption } from './flexible-block.js'
 import { text } from './inline.js'
 
 describe('toBlocks', () => {
@@ -12,16 +12,43 @@ describe('toBlocks', () => {
     expect(result).toEqual([heading1(text('Hello')), paragraph(inlinesA), heading2(text('World')), paragraph(inlinesB)])
   })
 
-  // TODO: add MAX_BLOCKS_LENGTH test
+  it('chunks large inline arrays', () => {
+    // Create more than MAX_BLOCKS_LENGTH (100) inlines
+    const manyInlines = Array.from({ length: 150 }, (_, i) => text(`text-${i}`)).flat()
+    const result = toBlocks(manyInlines)
+    expect(result).toHaveLength(2) // Should be split into 2 paragraphs
+    expect(result[0].data.type).toBe('paragraph')
+    expect(result[1].data.type).toBe('paragraph')
+  })
 })
 
 describe('toInlines', () => {
-  it('removes blocks and put anchor to blocks', () => {
-    const fbs = [...text('Hello'), ...embed({ url: 'https://example.com' }), ...text('World')]
+  it('handles multiple blocks with anchors', () => {
+    const fbs = [
+      ...text('Start'),
+      mapCaption(embed({ url: 'https://example.com' })[0], () => text('Caption')),
+      ...text('Middle'),
+      ...image({ type: 'external', external: { url: 'https://example.com/image.jpg' } }),
+      ...text('End'),
+    ]
     const result = toInlines(fbs)
-    expect(result).toEqual([
-      [...text('Hello'), ...text('*1', { code: true }), ...text('World')],
-      embed({ url: 'https://example.com', caption: text('*1', { code: true }).map(i => i.data) }),
+
+    expect(result[0]).toEqual([
+      ...text('Start'),
+      ...text('*1', { code: true }),
+      ...text('Middle'),
+      ...text('*2', { code: true }),
+      ...text('End'),
+    ])
+    expect(result[1]).toEqual([
+      mapCaption(embed({ url: 'https://example.com' })[0], () => [
+        ...text('*1', { code: true }),
+        ...text(' '),
+        ...text('Caption'),
+      ]),
+      mapCaption(image({ type: 'external', external: { url: 'https://example.com/image.jpg' } })[0], () =>
+        text('*2', { code: true }),
+      ),
     ])
   })
 })
