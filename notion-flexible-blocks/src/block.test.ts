@@ -1,17 +1,7 @@
 import type { BlockObjectRequestWithoutChildren } from '@notionhq/client/build/src/api-endpoints.js'
 import type { BlockData, NBlock0, NBlock2 } from './block.js'
 import { describe, it, expect } from 'vitest'
-import {
-  embed,
-  bookmark,
-  image,
-  table,
-  paragraph,
-  columnList,
-  column,
-  maximumDepthToExist,
-  externalMedia,
-} from './block.js'
+import { embed, bookmark, image, table, paragraph, columnList, column, maximumDepthToExist, media } from './block.js'
 import { text } from './inline.js'
 
 it.skip('static assertions', () => {
@@ -47,28 +37,24 @@ describe('media functions error handling', () => {
     expect(embed({ url: 'invalid-url' })).toEqual([])
     expect(image({ type: 'external', external: { url: 'https://example.com/file.txt' } })).toEqual([])
   })
-})
 
-describe('externalMedia', () => {
   it('handles URLs without extension', () => {
-    expect(externalMedia('https://example.com/noextension')).toEqual([])
+    expect(media({ external: { url: 'https://example.com/noextension' } })).toEqual([])
   })
 
   it('handles unsupported extensions', () => {
-    expect(externalMedia('https://example.com/file.xyz')).toEqual([])
+    expect(media({ external: { url: 'https://example.com/file.xyz' } })).toEqual([])
   })
 
   it('detects image URLs correctly', () => {
-    const result = externalMedia('https://example.com/photo.jpg')
-    const expected = image({ type: 'external', external: { url: 'https://example.com/photo.jpg' } })
+    const result = media({ external: { url: 'https://example.com/photo.jpg' } })
     expect(result).toHaveLength(1)
-    expect(result).toEqual(expected)
+    expect(result).toEqual(image({ type: 'external', external: { url: 'https://example.com/photo.jpg' } }))
   })
 
   it('handles uppercase extensions', () => {
-    const result = externalMedia('https://example.com/PHOTO.JPG')
-    const expected = image({ type: 'external', external: { url: 'https://example.com/PHOTO.JPG' } })
+    const result = media({ external: { url: 'https://example.com/PHOTO.JPG' } })
     expect(result).toHaveLength(1)
-    expect(result).toEqual(expected)
+    expect(result).toEqual(image({ type: 'external', external: { url: 'https://example.com/PHOTO.JPG' } }))
   })
 })

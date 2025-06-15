@@ -47,7 +47,7 @@ export type MappedLink = string | { mention: string }
 export type MappedImage =
   | string // Shorthand for { type: 'image'; url: string }
   | { type?: 'embed'; embed: string }
-  | { type: fb.MediaType; url: string; file?: undefined }
+  | { type: 'media' | fb.MediaType; url: string; file?: undefined }
   | { type: fb.MediaType; url?: undefined; file: string }
 
 export const defaultContext: Context = {
@@ -296,11 +296,12 @@ class Translator {
         case 'embed':
           return await this.embed(mappedImage.embed, options)
       }
-      const media =
+      const preferredMediaType = mappedImage.type == 'media' ? undefined : mappedImage.type
+      const mediaContent =
         typeof mappedImage.url == 'string'
           ? { type: 'external' as const, external: { url: mappedImage.url } }
           : { type: 'file_upload' as const, file_upload: { id: mappedImage.file } }
-      return await fb.media(mappedImage.type, media, () => this.ctx.onInvalidImage(url))
+      return await fb.media(mediaContent, preferredMediaType, () => this.ctx.onInvalidImage(url))
     }
 
     if (!mappedImage) return await this.ctx.onInvalidImage(url)
