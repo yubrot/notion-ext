@@ -69,7 +69,7 @@ export function bookmark<T = Block[]>(bookmark: BlockDetail<'bookmark'>, onError
   return [block({ object: 'block', type: 'bookmark', bookmark: { ...bookmark, url } })]
 }
 
-export const supportedExtensions = (() => {
+const supportedExtensions = (() => {
   const audio = 'aac adts mid midi mp3 mpga m4a m4b mp4 oga ogg wav wma'.split(' ')
   const pdf = 'pdf'.split(' ')
   const image = 'gif heic jpeg jpg png svg tif tiff webp ico'.split(' ')
@@ -81,35 +81,9 @@ export const supportedExtensions = (() => {
 
 export type MediaType = 'audio' | 'pdf' | 'image' | 'video' | 'file'
 
-export type MediaContent = (NBlock2 & { type: 'image' })['image']
-
-export function media<T = Block[]>(type: MediaType, media: MediaContent, onError?: () => T): Block[] | T {
-  switch (type) {
-    case 'audio':
-      return audio(media, onError)
-    case 'pdf':
-      return pdf(media, onError)
-    case 'image':
-      return image(media, onError)
-    case 'video':
-      return video(media, onError)
-    default:
-      return file(media, onError)
-  }
-}
-
-export function externalMedia<T = Block[]>(url: string, onError?: () => T): Block[] | T {
-  const mediaType = getMediaTypeFromUrl(url)
-  if (!mediaType) return onError?.() || []
-
-  return media(mediaType, { type: 'external', external: { url } }, onError)
-}
-
-function getMediaTypeFromUrl(url: string): MediaType | null {
-  const urlParts = url.split('?')[0].split('.')
-  const extension = urlParts.pop()?.toLowerCase()
-  if (!extension) return null
-
+export function getMediaType(urlOrPathOrExtension: string, preferredType?: MediaType): MediaType | null {
+  const extension = urlOrPathOrExtension.split('?', 2)[0].split('.').slice(-1)[0].toLowerCase()
+  if (preferredType && supportedExtensions[preferredType].includes(extension)) return preferredType
   if (supportedExtensions.image.includes(extension)) return 'image'
   if (supportedExtensions.video.includes(extension)) return 'video'
   if (supportedExtensions.audio.includes(extension)) return 'audio'
@@ -119,14 +93,37 @@ function getMediaTypeFromUrl(url: string): MediaType | null {
   return null
 }
 
+export type MediaContent =
+  | BlockDetail<'audio'>
+  | BlockDetail<'pdf'>
+  | BlockDetail<'image'>
+  | BlockDetail<'video'>
+  | BlockDetail<'file'>
+
+export function media<T = Block[]>(content: MediaContent, preferredType?: MediaType, onError?: () => T): Block[] | T {
+  // NOTE: The current implementation does not attempt to determine the appropriate block type for content that is not of the external type.
+  const type = 'external' in content ? getMediaType(content.external.url, preferredType) : preferredType
+  switch (type) {
+    case 'audio':
+      return audio(content, onError)
+    case 'pdf':
+      return pdf(content, onError)
+    case 'image':
+      return image(content, onError)
+    case 'video':
+      return video(content, onError)
+    default:
+      return file(content, onError)
+  }
+}
+
 function normalizeMediaContent(content: MediaContent, extensions: string[]): MediaContent {
   if (!content.type && 'external' in content) content = { type: 'external', ...content }
   if (content.type == 'external') {
     const url = toEmbeddableUrl(content.external.url)
     if (!url) throw 'Cannot convert URL to embeddable'
 
-    const urlParts = url.split('?', 2)[0].split('.')
-    const extension = urlParts.pop()?.toLowerCase()
+    const extension = url.split('?', 2)[0].split('.').slice(-1)[0].toLowerCase()
     if (!extension || !extensions.includes(extension)) throw 'Unsupported file extension'
 
     return { ...content, external: { ...content.external, url } }

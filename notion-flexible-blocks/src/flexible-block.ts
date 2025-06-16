@@ -106,6 +106,8 @@ export function mapCaption<T extends FlexibleBlock>(fb: T, handler: (data?: Inli
       return { ...fb, data: { ...d, pdf: { ...d.pdf, caption: h(d.pdf.caption) } } }
     case 'audio':
       return { ...fb, data: { ...d, audio: { ...d.audio, caption: h(d.audio.caption) } } }
+    case 'file':
+      return { ...fb, data: { ...d, file: { ...d.file, caption: h(d.file.caption) } } }
     default:
       return fb
   }

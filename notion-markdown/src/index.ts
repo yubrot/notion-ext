@@ -2,7 +2,7 @@ import type { Client } from '@notionhq/client'
 import * as fb from '@yubrot/notion-flexible-blocks'
 import { translate, type Context } from './translate.js'
 
-export { type Context } from './translate.js'
+export { type Context, type MappedImage, type MappedLink } from './translate.js'
 export { type Retryable } from '@yubrot/notion-flexible-blocks'
 
 /**
