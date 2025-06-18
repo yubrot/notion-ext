@@ -8,6 +8,7 @@ const DEFAULT_RETRYABLE_ERROR_CODES = [
   APIErrorCode.ConflictError,
   APIErrorCode.RateLimited,
   APIErrorCode.InternalServerError,
+  APIErrorCode.ServiceUnavailable,
 ]
 
 /**
