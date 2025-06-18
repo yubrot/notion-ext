@@ -190,7 +190,7 @@ foo [^1] bar [^2] baz
         ...fb.newline,
         ...fb.text('Invalid image: INVALID_EXAMPLE'),
         ...fb.newline,
-        ...fb.text('Invalid image: https://example.com/unsupported-filetype.ext'),
+        ...fb.text('Invalid image: unsupported-filetype.ext'),
         ...fb.newline,
         ...fb.image({ external: { url: 'https://example.com/foo.png' } }),
         ...fb.newline,

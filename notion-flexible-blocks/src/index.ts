@@ -12,6 +12,7 @@ export {
   type MediaContent,
   embed,
   bookmark,
+  getMediaType,
   media,
   image,
   video,

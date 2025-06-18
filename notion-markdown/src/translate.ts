@@ -45,10 +45,10 @@ export interface Context {
 export type MappedLink = string | { mention: string }
 
 export type MappedImage =
-  | string // Shorthand for { type: 'image'; url: string }
+  | string // Shorthand for { type: 'media'; url: string }
   | { type?: 'embed'; embed: string }
-  | { type: fb.MediaType; url: string; file?: undefined }
-  | { type: fb.MediaType; url?: undefined; file: string }
+  | { type: 'media' | fb.MediaType; url: string; file?: undefined }
+  | { type: 'media' | fb.MediaType; url?: undefined; file: string }
 
 export const defaultContext: Context = {
   mdProcessor: unified().use(remarkParse).use(remarkGfm),
@@ -270,10 +270,11 @@ class Translator {
     ann?: fb.Inline['data']['annotations'],
   ): Promise<fb.FlexibleBlock[]> {
     const mappedLink = await this.ctx.mapLink(url)
+    if (!mappedLink) return await this.ctx.onInvalidLink(fbs, url)
     if (isObject(mappedLink)) return await this.mention(fbs, mappedLink.mention, ann)
 
-    const embeddableUrl = mappedLink && fb.toEmbeddableUrl(mappedLink)
-    if (!embeddableUrl) return await this.ctx.onInvalidLink(fbs, mappedLink || url)
+    const embeddableUrl = fb.toEmbeddableUrl(mappedLink)
+    if (!embeddableUrl) return await this.ctx.onInvalidLink(fbs, url)
 
     return fbs.map(b => fb.mapLink(b, () => embeddableUrl))
   }
@@ -289,39 +290,37 @@ class Translator {
   }
 
   async image(url: string, options?: { title?: string; width?: number; height?: number }): Promise<fb.FlexibleBlock[]> {
-    const mappedImage = await this.ctx.mapImage(url)
-    if (isObject(mappedImage)) {
-      switch (mappedImage.type) {
-        case undefined:
-        case 'embed':
-          return await this.embed(mappedImage.embed, options)
-      }
-      const media =
-        typeof mappedImage.url == 'string'
-          ? { type: 'external' as const, external: { url: mappedImage.url } }
-          : { type: 'file_upload' as const, file_upload: { id: mappedImage.file } }
-      return await fb.media(mappedImage.type, media, () => this.ctx.onInvalidImage(url))
+    if (options?.title?.length) {
+      // NOTE: Since current Notion API cannot specify width and height, we only use options.title
+      const caption = fb.text(options.title)
+      return (await this.image(url)).map(b => fb.mapCaption(b, () => caption))
     }
 
+    let mappedImage = await this.ctx.mapImage(url)
     if (!mappedImage) return await this.ctx.onInvalidImage(url)
-    url = mappedImage
+    if (!isObject(mappedImage)) mappedImage = { type: 'media', url: mappedImage }
+    switch (mappedImage.type) {
+      case undefined:
+      case 'embed':
+        return await this.embed(mappedImage.embed, options)
+    }
 
-    if (this.ctx.testImageFetchable) {
+    if (this.ctx.testImageFetchable && typeof mappedImage.url == 'string') {
       try {
-        const response = await fetch(url, { method: 'HEAD' })
+        const response = await fetch(mappedImage.url, { method: 'HEAD' })
         if (!response.ok) throw 'Cannot fetch image'
       } catch {
         return await this.ctx.onInvalidImage(url)
       }
     }
 
-    const image = {
-      type: 'external',
-      external: { url },
-      // NOTE: Since current Notion API cannot specify width and height, we only use options.title
-      caption: options?.title?.length ? fb.text(options.title).map(c => c.data) : undefined,
-    } as const
-    return await fb.image(image, () => this.ctx.onInvalidImage(url))
+    return await fb.media(
+      typeof mappedImage.url == 'string'
+        ? { type: 'external' as const, external: { url: mappedImage.url } }
+        : { type: 'file_upload' as const, file_upload: { id: mappedImage.file } },
+      mappedImage.type == 'media' ? undefined : mappedImage.type,
+      () => this.ctx.onInvalidImage(url),
+    )
   }
 
   async embed(url: string, options?: { title?: string; width?: number; height?: number }): Promise<fb.FlexibleBlock[]> {
