@@ -1,6 +1,6 @@
 {
   "name": "@yubrot/notion-flexible-blocks",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A wrapper for the Notion Blocks API that provides a more developer-friendly interface to create Notion blocks.",
   "type": "module",
   "main": "./dist/index.js",
