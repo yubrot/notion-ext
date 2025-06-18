@@ -1,3 +1,5 @@
+import * as fb from '@yubrot/notion-flexible-blocks'
+
 /**
  * Interface to the source knowledge database to be migrated to Notion.
  */
@@ -21,10 +23,17 @@ export interface Source {
 }
 
 export type Ref =
-  | { type: 'page'; url: string } // reference to the page
-  | { type: 'path'; path: Path } // reference to the path (corresponding page is not determined or does not exist)
-  | { type: 'image'; url: string } // reference to the image content.
-  | { type: 'embed'; url: string } // reference to the embedding content.
+  | { type: 'page'; url: string }
+  | { type: 'path'; path: Path } // A reference to a path (corresponding page is not determined or does not exist)
+  | { type: 'embed'; url: string } // A reference to the embedding content
+  | {
+      type: 'media' | fb.MediaType
+      url: string
+      /**
+       * If provided, the migrator will attempt to download the content and upload it to Notion.
+       */
+      file?(): Promise<{ content: Buffer; name?: string } | null>
+    }
 
 /**
  * The source pages are assumed to have a hierarchical structure, and a `Path` represents a location in that hierarchy.

@@ -1,11 +1,12 @@
 import PQueue from 'p-queue'
 import { Client as NotionClient } from '@notionhq/client'
-import { defaultRetryable, toPageUrl, type Retryable } from '@yubrot/notion-flexible-blocks'
+import { defaultRetryable, getMediaType, toPageUrl, type Retryable } from '@yubrot/notion-flexible-blocks'
 import { create, type Context } from '@yubrot/notion-markdown'
 import { PrismaClient, type SourcePageMigration } from './prisma/client/index.js'
 import { Set as SourceSet } from './source/set.mts'
 import type * as src from './source/interface.mts'
 import { PageIssuer } from './page-issuer.mts'
+import { FileMigrator } from './file-migrator.mts'
 
 export interface MigratorOptions {
   notion: NotionClient
@@ -19,6 +20,7 @@ export interface MigratorOptions {
 export class Migrator {
   readonly options: Required<MigratorOptions>
   readonly pageIssuer: PageIssuer
+  readonly fileMigrator: FileMigrator
   readonly sources = new SourceSet()
   readonly rootPageIds: Record<string, string> = {} // source.id -> notion page id
 
@@ -31,6 +33,7 @@ export class Migrator {
       ...options,
     }
     this.pageIssuer = new PageIssuer(this.options.notion, this.prisma, this.options.retryable)
+    this.fileMigrator = new FileMigrator(this.options.notion, this.prisma, this.options.retryable)
   }
 
   get prisma(): PrismaClient {
@@ -196,9 +199,15 @@ export class Migrator {
             return { mention: (await pqueue.add(() => this.#migrate(ref.url, true)))?.notionPageId || '' }
           case 'path':
             return { mention: await this.pageIssuer.issue(this.rootPageIds[source.id], ref.path) }
-          case 'image':
           case 'embed':
-            return ref.url
+          case 'media':
+          case 'audio':
+          case 'pdf':
+          case 'image':
+          case 'video':
+          case 'file':
+            // Link to embedded content is unsupported
+            return null
           default:
             throw new Error(ref satisfies never)
         }
@@ -217,10 +226,30 @@ export class Migrator {
           case 'page':
           case 'path':
             return null
-          case 'image':
-            return ref.url
           case 'embed':
             return { embed: ref.url }
+          case 'media':
+          case 'audio':
+          case 'pdf':
+          case 'image':
+          case 'video':
+          case 'file':
+            try {
+              const preferredMediaType = ref.type == 'media' ? undefined : ref.type
+
+              if (ref.file) {
+                const file = await ref.file()
+                if (file) {
+                  const filename = file.name || this.fileMigrator.urlToFilename(ref.url)
+                  const fileId = await this.fileMigrator.migrate(ref.url, filename, file.content)
+                  return { type: getMediaType(filename, preferredMediaType) || 'media', file: fileId }
+                }
+              }
+
+              return { type: getMediaType(ref.url, preferredMediaType) || 'media', url: ref.url }
+            } catch (e) {
+              throw new Error(`Failed to embed ${ref.url}: ${e}`)
+            }
           default:
             throw new Error(ref satisfies never)
         }
