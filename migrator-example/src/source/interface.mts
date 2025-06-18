@@ -20,11 +20,34 @@ export interface Source {
   page(url: string): Promise<Page | null>
 }
 
-export type Ref =
-  | { type: 'page'; url: string } // reference to the page
-  | { type: 'path'; path: Path } // reference to the path (corresponding page is not determined or does not exist)
-  | { type: 'image'; url: string } // reference to the image content.
-  | { type: 'embed'; url: string } // reference to the embedding content.
+export type Ref = PageRef | PathRef | EmbedRef
+
+export interface PageRef {
+  type: 'page'
+  url: string
+}
+
+/**
+ * A reference to a path (corresponding page is not determined or does not exist)
+ */
+export interface PathRef {
+  type: 'path'
+  path: Path
+}
+
+export interface EmbedRef {
+  type: 'embed'
+  url: string
+  /**
+   * Basically block type of the content will be inferred by the URL, but if this property is provided, the migrator
+   * will prefer to use this block type instead of the one inferred by the URL.
+   */
+  preferredBlockType?: 'audio' | 'pdf' | 'image' | 'video' | 'file' | 'embed'
+  /**
+   * If provided, the migrator will attempt to download the content and upload it to Notion.
+   */
+  direct?(): Promise<{ content: Buffer; filename?: string } | null>
+}
 
 /**
  * The source pages are assumed to have a hierarchical structure, and a `Path` represents a location in that hierarchy.

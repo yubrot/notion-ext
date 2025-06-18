@@ -24,13 +24,19 @@ export class FsSource implements src.Source {
   ref(url: string): src.Ref | null {
     if (!url.startsWith(this.baseUrl)) return null
     const srcPath = urlToSrcPath(url, this.baseUrl)
-    const { pageFile, pathDir } = srcPathToFilePath(srcPath, this.rootDir)
-    if (pathDir) {
-      if (fs.existsSync(pathDir) && fs.statSync(pathDir).isDirectory()) {
-        return { type: 'path', path: srcPath }
+    const normalizedUrl = srcPathToUrl(srcPath, this.baseUrl)
+    const { pageFile, nonPageFile } = srcPathToFilePath(srcPath, this.rootDir)
+    if (fs.existsSync(pageFile) && fs.statSync(pageFile).isFile()) {
+      return { type: 'page', url: normalizedUrl }
+    }
+    if (nonPageFile && fs.existsSync(nonPageFile)) {
+      if (fs.statSync(nonPageFile).isDirectory()) return { type: 'path', path: srcPath }
+
+      return {
+        type: 'embed',
+        url: normalizedUrl,
+        direct: async () => ({ content: await fs.promises.readFile(nonPageFile) }),
       }
-    } else if (fs.existsSync(pageFile) && fs.statSync(pageFile).isFile()) {
-      return { type: 'page', url: srcPathToUrl(srcPath, this.baseUrl) }
     }
     return null
   }
@@ -83,9 +89,11 @@ export class FsSource implements src.Source {
 //
 // | src.Path       | Page file path           | URL                |
 // | -------------- | ------------------------ | ------------------ |
+// | `[]`           | `<rootDir>/index.md`     | `<baseUrl>`        |
 // | `["foo.md"]`   | `<rootDir>/foo.md`       | `<baseUrl>/foo.md` |
 // | `["bar"]`      | `<rootDir>/bar/index.md` | `<baseUrl>/bar`    |
-// | `["index.md"]` | (denied)                 | (denied)           |
+//
+// src.Path containing `index.md` is not allowed.
 
 function srcPathToUrl(srcPath: src.Path, baseUrl: string): string {
   return `${baseUrl}${srcPath.map(segment => `/${segment}`).join('')}`
@@ -94,9 +102,9 @@ function srcPathToUrl(srcPath: src.Path, baseUrl: string): string {
 function srcPathToFilePath(srcPath: src.Path, rootDir: string) {
   const p = path.join(rootDir, ...srcPath)
   if (srcPath.length && srcPath[srcPath.length - 1].endsWith('.md')) {
-    return { pageFile: p, pathDir: null } // page file should be present
+    return { pageFile: p, nonPageFile: null } // must be a page
   } else {
-    return { pageFile: p + '/index.md', pathDir: p } // at least directory should be present
+    return { pageFile: p + '/index.md', nonPageFile: p } // ambiguous; if page file exists, it is a page
   }
 }
 

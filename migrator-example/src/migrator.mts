@@ -6,6 +6,7 @@ import { PrismaClient, type SourcePageMigration } from './prisma/client/index.js
 import { Set as SourceSet } from './source/set.mts'
 import type * as src from './source/interface.mts'
 import { PageIssuer } from './page-issuer.mts'
+import { FileMigrator } from './file-migrator.mts'
 
 export interface MigratorOptions {
   notion: NotionClient
@@ -19,6 +20,7 @@ export interface MigratorOptions {
 export class Migrator {
   readonly options: Required<MigratorOptions>
   readonly pageIssuer: PageIssuer
+  readonly fileMigrator: FileMigrator
   readonly sources = new SourceSet()
   readonly rootPageIds: Record<string, string> = {} // source.id -> notion page id
 
@@ -31,6 +33,7 @@ export class Migrator {
       ...options,
     }
     this.pageIssuer = new PageIssuer(this.options.notion, this.prisma, this.options.retryable)
+    this.fileMigrator = new FileMigrator(this.options.notion, this.prisma, this.options.retryable)
   }
 
   get prisma(): PrismaClient {
@@ -196,9 +199,9 @@ export class Migrator {
             return { mention: (await pqueue.add(() => this.#migrate(ref.url, true)))?.notionPageId || '' }
           case 'path':
             return { mention: await this.pageIssuer.issue(this.rootPageIds[source.id], ref.path) }
-          case 'image':
           case 'embed':
-            return ref.url
+            // Link to embedded content is unsupported
+            return null
           default:
             throw new Error(ref satisfies never)
         }
@@ -217,10 +220,24 @@ export class Migrator {
           case 'page':
           case 'path':
             return null
-          case 'image':
-            return ref.url
           case 'embed':
-            return { embed: ref.url }
+            try {
+              // Handle direct file upload if available
+              if (ref.direct) {
+                const direct = await ref.direct()
+                if (direct) {
+                  const filename = direct.filename || this.fileMigrator.urlToFilename(ref.url)
+                  const type = (ref.preferredBlockType != 'embed' && ref.preferredBlockType) || 'media'
+                  const file = await this.fileMigrator.migrate(ref.url, filename, direct.content)
+                  return { type, file }
+                }
+              }
+              if (ref.preferredBlockType == 'embed') return { embed: ref.url }
+
+              return { type: ref.preferredBlockType || 'media', url: ref.url }
+            } catch (e) {
+              throw new Error(`Failed to embed ${ref.url}: ${e}`)
+            }
           default:
             throw new Error(ref satisfies never)
         }
