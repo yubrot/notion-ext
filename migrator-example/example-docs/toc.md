@@ -10,3 +10,4 @@ This is `toc.md`
 - [bar/fuga.md](./bar/fuga.md)
 - [bar/piyo.md](./bar/piyo.md)
 - [hello/world](./hello/world/index.md)
+- [media-example.md](./media-example.md)
