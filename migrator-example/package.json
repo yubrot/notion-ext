@@ -14,9 +14,11 @@
     "@yubrot/notion-markdown": "workspace:*",
     "commander": "^13.1.0",
     "lru-cache": "^11.1.0",
+    "mime-types": "^3.0.1",
     "p-queue": "^8.1.0"
   },
   "devDependencies": {
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^22.15.3",
     "prisma": "^6.7.0",
     "typescript": "^5.8.3"
