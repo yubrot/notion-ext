@@ -229,17 +229,14 @@ Inline <font size="15">foo</font> bar
       `,
       output: fb.toBlocks([
         ...fb.newline,
-        ...fb.text('\n'),
         fb.divider,
-        ...fb.text('\n'),
         ...fb.image({
           external: { url: 'https://example.com/image.png' },
           caption: fb.text('example').map(i => i.data),
         }),
-        ...fb.text('\n'),
         ...fb.embed({ url: 'https://example.com' }),
         ...fb.text('\nInline '),
-        ...fb.text('foo'), // onUnsupportedHTMLNode's default behavior
+        ...fb.text('foo'), // default behavior of onUnsupportedHtmlTag
         ...fb.text(' bar'),
       ]),
     },
