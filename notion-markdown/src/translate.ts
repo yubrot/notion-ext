@@ -306,6 +306,12 @@ export function defaultHtmlTagTranslators(): Record<string, HtmlTagTranslator> {
   return {
     br: async () => fb.newline,
     hr: async () => [fb.divider],
+    a: async (src, t) => {
+      const url = src.attrs.href || undefined
+      if (!url) return await t.contents(src.children)
+
+      return await t.link(await t.contents(src.children), url)
+    },
     img: async (src, t) => {
       const url = src.attrs.src || undefined
       if (!url) return []
@@ -325,6 +331,17 @@ export function defaultHtmlTagTranslators(): Record<string, HtmlTagTranslator> {
     },
     div: block,
     p: block,
+    details: async (src, t) => {
+      const maySummary = src.children[0]
+      if (maySummary) {
+        if (maySummary.type == 'htmlTag' && maySummary.tag == 'summary') {
+          const [head, body] = fb.removeHeadingParagraph(fb.toBlocks(await t.contents(maySummary.children)))
+          return [fb.toggle(head, [...body, ...fb.toBlocks(await t.contents(src.children.slice(1)))])]
+        }
+        return [fb.toggle([], fb.toBlocks(await t.contents(src.children)))]
+      }
+      return []
+    },
   }
 }
 

@@ -149,6 +149,25 @@ Images in table cells are replaced by the reference strings:
 - Link to Google: [Link to Google](https://www.google.com)
 - Link to Notion page: [Link to Notion page](notion/1e9b53d5317a800593a3de04458c65e5)
 
+# HTML tags
+
+\`notion-markdown\` supports several HTML tags, including \`<a>\`, \`<details>\`, and \`<br>\`.
+
+<details><summary>Toggle title</summary>
+<p>
+
+Toggle body.
+
+*Emphasized.*
+
+**Strong.**
+
+</p>
+</details>
+
+- <a href="https://www.google.com/">Link to Google with \`<a>\` tag</a>
+- Line breaks with \`<br>\` <br> A NEW LINE
+
 # Footnotes
 
 Since Notion does not support footnotes [^1], we will replace them with content [^2] that displays like that.

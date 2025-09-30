@@ -226,6 +226,26 @@ Default _Italic_ **Bold** \`Code\` ~~Strikethrough~~  \nfoo
 <img src="https://example.com/image.png" alt="example">
 <iframe src="https://example.com"></iframe>
 Inline <font size="15">foo</font> bar
+
+<details>
+<summary>toggle *title*</summary>
+
+toggle **body 1**
+
+toggle ~~body 2~~
+
+</details>
+
+<details>toggle2</details>
+
+<details>
+<summary>
+
+toggle3 *title*
+
+</summary>
+<p>hello</p>
+</details>
       `,
       output: fb.toBlocks([
         ...fb.newline,
@@ -238,7 +258,43 @@ Inline <font size="15">foo</font> bar
         ...fb.text('\nInline '),
         ...fb.text('foo'), // default behavior of onUnsupportedHtmlTag
         ...fb.text(' bar'),
+        fb.toggle(fb.text('toggle *title*'), [
+          fb.paragraph([...fb.text('toggle '), ...fb.text('body 1', { bold: true })]),
+          fb.paragraph([...fb.text('toggle '), ...fb.text('body 2', { strikethrough: true })]),
+        ]),
+        fb.toggle([], [fb.paragraph(fb.text('toggle2'))]),
+        fb.toggle([...fb.text('toggle3 '), ...fb.text('title', { italic: true })], [fb.paragraph(fb.text('hello'))]),
       ]),
+    },
+    {
+      title: 'mixed markdown with html',
+      input: `
+- <details><summary>toggle title</summary>
+  <p>
+
+  Here is **an example**
+
+  </p>
+- A <a href="https://www.notion.com/">Notion **link**</a>
+      `,
+      output: [
+        fb.bulletedListItem(
+          [],
+          [
+            fb.toggle(fb.text('toggle title'), [
+              fb.paragraph([...fb.text('Here is '), ...fb.text('an example', { bold: true })]),
+            ]),
+          ],
+        ),
+        fb.bulletedListItem(
+          [
+            ...fb.text('A '),
+            ...fb.text('Notion ').map(b => fb.mapLink(b, () => 'https://www.notion.com/')),
+            ...fb.text('link', { bold: true }).map(b => fb.mapLink(b, () => 'https://www.notion.com/')),
+          ],
+          [],
+        ),
+      ],
     },
     {
       title: 'table',
