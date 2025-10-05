@@ -9,33 +9,33 @@ export class FsSource implements src.Source {
   readonly id: string
   readonly baseUrl: string
   readonly rootDir: string
-
   /**
    * @param id - The ID of the source.
    * @param baseUrl - The (pseudo) base URL of the source.
    * @param rootDir - The root directory.
    */
   constructor(id: string, baseUrl: string, rootDir: string) {
+    if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) throw 'rootDir does not exist'
+
     this.id = id
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.rootDir = path.resolve(rootDir.replace(/\/+$/, ''))
   }
 
   ref(url: string): src.Ref | null {
-    if (!url.startsWith(this.baseUrl)) return null
-    const srcPath = urlToSrcPath(url, this.baseUrl)
-    const normalizedUrl = srcPathToUrl(srcPath, this.baseUrl)
-    const { pageFile, nonPageFile } = srcPathToFilePath(srcPath, this.rootDir)
-    if (fs.existsSync(pageFile) && fs.statSync(pageFile).isFile()) {
-      return { type: 'page', url: normalizedUrl }
-    }
-    if (nonPageFile && fs.existsSync(nonPageFile)) {
-      if (fs.statSync(nonPageFile).isDirectory()) return { type: 'path', path: srcPath }
+    const info = this.#urlToFilePathInfo(url)
+    if (!info) return null
+
+    if (info.stats.isDirectory()) return { type: 'path', path: info.components }
+    if (info.stats.isFile()) {
+      url = this.#filePathToUrl(info.path) // normalize
+
+      if (info.components.at(-1)?.endsWith('.md')) return { type: 'page', url }
 
       return {
         type: 'media',
-        url: normalizedUrl,
-        file: async () => ({ content: await fs.promises.readFile(nonPageFile) }),
+        url,
+        file: async () => ({ content: await fs.promises.readFile(info.path) }),
       }
     }
     return null
@@ -54,7 +54,7 @@ export class FsSource implements src.Source {
       for (const entry of entries) {
         if (!entry.isFile() || !entry.name.endsWith('.md')) continue
 
-        pages.push(this.#page(filePathToSrcPath(path.join(entry.parentPath, entry.name), this.rootDir)))
+        pages.push(this.#page(path.join(entry.parentPath, entry.name)))
       }
     } catch {
       // do nothing
@@ -63,63 +63,67 @@ export class FsSource implements src.Source {
   }
 
   async page(url: string): Promise<src.Page | null> {
-    if (!url.startsWith(this.baseUrl)) return null
-    const srcPath = urlToSrcPath(url, this.baseUrl)
-    const { pageFile } = srcPathToFilePath(srcPath, this.rootDir)
-    if (fs.existsSync(pageFile) && fs.statSync(pageFile).isFile()) return this.#page(srcPath)
-    return null
+    const info = this.#urlToFilePathInfo(url)
+    if (!info || !info.stats.isFile() || !info.components.at(-1)?.endsWith('.md')) return null
+
+    return this.#page(info.path)
   }
 
-  #page(srcPath: src.Path): src.Page {
+  #page(filePath: string): src.Page {
+    let src: string
+    if (filePath.endsWith('/index.md')) {
+      // index.md is always omitted (When x/index.md exists, x is always a directory, so it can always be omitted)
+      src = filePath.slice(this.rootDir.length, -'/index.md'.length)
+    } else if (filePath.endsWith('.md') && !fs.existsSync(filePath.slice(0, -'.md'.length))) {
+      // The .md extension at the end can be omitted if a file with that name without .md does not exist.
+      src = filePath.slice(this.rootDir.length, -'.md'.length)
+    } else {
+      src = filePath.slice(this.rootDir.length)
+    }
+
     return {
       source: this,
-      url: srcPathToUrl(srcPath, this.baseUrl),
-      path: srcPath,
-      contents: () => fs.promises.readFile(srcPathToFilePath(srcPath, this.rootDir).pageFile, 'utf-8'),
+      url: this.#filePathToUrl(filePath),
+      path: src.split('/').slice(1),
+      contents: () => fs.promises.readFile(filePath, 'utf-8'),
       // NOTE: We don't need fixPathConflict since file system satisfies the uniqueness of the path.
       freeze: notionPageUrl => {
         const message = `THIS PAGE HAS BEEN MIGRATED TO ${notionPageUrl}\n`
-        return fs.promises.writeFile(srcPathToFilePath(srcPath, this.rootDir).pageFile, message)
+        return fs.promises.writeFile(filePath, message)
       },
     }
   }
-}
 
-// We normalize the path to the following:
-//
-// | src.Path       | Page file path           | URL                |
-// | -------------- | ------------------------ | ------------------ |
-// | `[]`           | `<rootDir>/index.md`     | `<baseUrl>`        |
-// | `["foo.md"]`   | `<rootDir>/foo.md`       | `<baseUrl>/foo.md` |
-// | `["bar"]`      | `<rootDir>/bar/index.md` | `<baseUrl>/bar`    |
-//
-// src.Path containing `index.md` is not allowed.
+  // URL must always correspond to the actual file or directory path (No support for omitting .md extensions, etc)
+  // -> The file corresponding to the URL can always be uniquely identified.
+  // -> The URL is uniquely determined from the file path.
 
-function srcPathToUrl(srcPath: src.Path, baseUrl: string): string {
-  return `${baseUrl}${srcPath.map(segment => `/${segment}`).join('')}`
-}
+  #urlToFilePathInfo(url: string): {
+    path: string
+    stats: fs.Stats
+    components: string[]
+  } | null {
+    if (!url.startsWith(this.baseUrl)) return null
 
-function srcPathToFilePath(srcPath: src.Path, rootDir: string) {
-  const p = path.join(rootDir, ...srcPath)
-  if (srcPath.length && srcPath[srcPath.length - 1].endsWith('.md')) {
-    return { pageFile: p, nonPageFile: null } // must be a page
-  } else {
-    return { pageFile: p + '/index.md', nonPageFile: p } // ambiguous; if page file exists, it is a page
+    try {
+      // ex.
+      // url = 'https://github.com/yubrot/foo/hello%20world.md'
+      // baseUrl = 'https://github.com/yubrot'
+      // -> ['foo', 'hello world.md']
+      const components = new URL(`https://example.com/${url.slice(this.baseUrl.length)}`).pathname
+        .split(/\/+/)
+        .filter(Boolean)
+        .map(decodeURI)
+
+      const filePath = path.join(this.rootDir, ...components)
+      const stats = fs.statSync(filePath)
+      return { path: filePath, stats, components }
+    } catch {
+      return null // new URL or fs.statAsync failed
+    }
   }
-}
 
-function urlToSrcPath(url: string, baseUrl: string): src.Path {
-  return url
-    .slice(baseUrl.length)
-    .replace(/index.md$/, '')
-    .split('/')
-    .filter(Boolean)
-}
-
-function filePathToSrcPath(filePath: string, rootDir: string): src.Path {
-  return filePath
-    .slice(rootDir.length)
-    .replace(/index.md$/, '')
-    .split('/')
-    .filter(Boolean)
+  #filePathToUrl(filePath: string): string {
+    return this.baseUrl + encodeURI(filePath.slice(this.rootDir.length))
+  }
 }

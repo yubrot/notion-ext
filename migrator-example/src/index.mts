@@ -10,6 +10,7 @@ import { FsSource } from './source/implementations/fs.mts'
 const prisma = new PrismaClient()
 
 program.option('--notion-api-key <notionApiKey>', 'Notion API key. defaults to process.env.NOTION_API_KEY')
+program.option('--notion-root-page <notionRootPage>', 'Notion root page ID. defaults to process.env.NOTION_ROOT_PAGE')
 
 function notionClient(): NotionClient {
   const notionApiKey = program.opts().notionApiKey || process.env.NOTION_API_KEY
@@ -20,6 +21,10 @@ function notionClient(): NotionClient {
 }
 
 function migrator() {
+  const notionRootPage = program.opts().notionRootPage || process.env.NOTION_ROOT_PAGE
+  if (!notionRootPage) {
+    throw new Error('Either --notion-root-page of process.env.NOTION_ROOT_PAGE are required')
+  }
   const mg = new Migrator({ notion: notionClient(), prisma })
   mg.mount(
     new FsSource(
@@ -27,7 +32,7 @@ function migrator() {
       'https://github.com/yubrot/notion-ext/tree/main/migrator-example/example-docs',
       './example-docs',
     ),
-    '1edb53d5-317a-80cb-96f9-f5eb72cb0a59',
+    notionRootPage,
   )
   return mg
 }
